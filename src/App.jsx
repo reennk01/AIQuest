@@ -1,8 +1,10 @@
-import React, { useMemo, useRef, useState } from "react";
+import React, { useState, useRef, useMemo } from "react";
 
 const DIFFICULTY = { easy: 2, medium: 4, hard: 6 };
 
-function shuffle(arr) { return [...arr].sort(() => Math.random() - 0.5); }
+function shuffle(arr) {
+  return [...arr].sort(() => Math.random() - 0.5);
+}
 
 function pickDecoys(baseCaption, tags = [], dense = [], count = 3) {
   const pool = new Set();
@@ -17,7 +19,9 @@ function pickDecoys(baseCaption, tags = [], dense = [], count = 3) {
   ];
   silly.forEach(s => pool.add(s));
 
-  const candidates = Array.from(pool).filter(x => typeof x === "string" && x.length > 0 && x.toLowerCase() !== baseCaption?.toLowerCase());
+  const candidates = Array.from(pool).filter(
+    x => typeof x === "string" && x.length > 0 && x.toLowerCase() !== baseCaption?.toLowerCase()
+  );
 
   const picks = [];
   while (picks.length < count && candidates.length > 0) {
@@ -30,7 +34,7 @@ function pickDecoys(baseCaption, tags = [], dense = [], count = 3) {
 export default function App() {
   const [imageUrl, setImageUrl] = useState("");
   const [fileObjUrl, setFileObjUrl] = useState("");
-  const [gameState, setGameState] = useState("idle"); // idle | loading | question | result
+  const [gameState, setGameState] = useState("idle");
   const [choices, setChoices] = useState([]);
   const [correct, setCorrect] = useState(null);
   const [score, setScore] = useState(() => Number(localStorage.getItem("cq_score") || 0));
@@ -48,7 +52,7 @@ export default function App() {
   async function handleAnalyze(blobOrUrl) {
     setGameState("loading");
     try {
-      let body; let headers = {};
+      let body, headers = {};
       if (blobOrUrl instanceof Blob) {
         body = blobOrUrl;
         headers["Content-Type"] = "application/octet-stream";
@@ -58,7 +62,7 @@ export default function App() {
       }
 
       const res = await fetch("/api/analyze", { method: "POST", headers, body });
-      if (!res.ok) throw new Error(`Analyze failed: ${res.status}`);
+      if (!res.ok) throw new Error(`analyze failed: ${res.status}`);
       const data = await res.json();
 
       const real = data.caption;
@@ -181,12 +185,14 @@ export default function App() {
           <div className="mt-6 bg-slate-900/60 rounded-2xl p-4 border border-slate-800">
             <div className="font-semibold mb-2">Answer</div>
             <div className="mb-4">✅ Correct caption: <span className="font-mono">{correct}</span></div>
-            <button className="rounded-xl bg-indigo-600 hover:bg-indigo-500 px-4 py-2" onClick={reset}>Play Again</button>
+            <div className="flex gap-2">
+              <button className="rounded-xl bg-indigo-600 hover:bg-indigo-500 px-4 py-2" onClick={reset}>Play Again</button>
+            </div>
           </div>
         )}
 
         <footer className="mt-8 opacity-60 text-xs text-center">
-          Built with Azure Computer Vision 4.0 • Free Version
+          Built with Azure Image Analysis 4.0
         </footer>
       </div>
     </div>
