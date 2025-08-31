@@ -20,4 +20,4 @@ jobs:
           action: "upload"
           app_location: "/"        # folder containing index.html
           api_location: "api"      # folder containing Azure Functions
-          output_location: "dist"  # if using Vite; else leave blank
+          output_location: "build"  # if using Vite; else leave blank
