@@ -1,0 +1,17 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Caption Quest</title>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module">
+      import React from 'https://cdn.skypack.dev/react';
+      import { createRoot } from 'https://cdn.skypack.dev/react-dom/client';
+      import App from './src/App.jsx';
+      createRoot(document.getElementById('root')).render(React.createElement(App));
+    </script>
+  </body>
+</html>
