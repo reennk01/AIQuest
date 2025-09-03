@@ -14,19 +14,19 @@ concurrency:
 
 jobs:
   deploy:
-    if: github.event_name == 'push'
+    if: github.event_name == 'push'   # don't deploy on PRs (secrets won't flow from forks)
     runs-on: ubuntu-latest
     permissions:
       contents: read
     steps:
       - uses: actions/checkout@v4
 
-      - name: Check SWA token presence
+      - name: Token present?
         run: |
           if [ -n "${{ secrets.AZURE_STATIC_WEB_APPS_API_TOKEN }}" ]; then
-            echo "SET"
+            echo SET
           else
-            echo "MISSING"; exit 1
+            echo MISSING; exit 1
           fi
 
       - name: Deploy to Azure Static Web Apps
@@ -36,4 +36,4 @@ jobs:
           action: upload
           app_location: /
           skip_app_build: true
-          skip_api_build: true
+          skip_api_build: true   # remove this and add api_location: caption-func when your Functions app is ready
