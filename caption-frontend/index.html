@@ -1,18 +1,65 @@
-<!DOCTYPE html>
-<html lang="en">
+<!doctype html>
+<html>
 <head>
-  <meta charset="UTF-8">
-  <title>Caption Quest</title>
-  <link rel="stylesheet" href="style.css">
+  <meta charset="utf-8" />
+  <title>Captioner</title>
+  <style>
+    body { font-family: Arial; max-width:700px; margin:24px auto; }
+    #preview { max-width:100%; height:auto; }
+    .btn { padding:8px 12px; margin:6px; }
+    #caption { margin-top:12px; font-size:18px; font-weight:600; }
+    #raw { font-size:12px; color:#444; white-space:pre-wrap; margin-top:10px; background:#f4f4f4; padding:8px; border-radius:6px; }
+  </style>
 </head>
 <body>
-  <h1>Caption Quest</h1>
+  <h2>AI Caption Generator (Azure)</h2>
+  <input type="file" id="file" accept="image/*" />
+  <button class="btn" id="btn">Generate Caption</button>
+  <div>
+    <img id="preview" src="" alt="" />
+  </div>
+  <div id="caption"></div>
+  <div id="raw"></div>
 
-  <input type="file" id="imageUpload" accept="image/*">
-  <button onclick="getCaption()">Get Caption</button>
+<script>
+const FUNC_URL = 'https://<your-func>.azurewebsites.net/api/caption'; // replace
 
-  <p id="result"></p>
+const fileInput = document.getElementById('file');
+const preview = document.getElementById('preview');
+const btn = document.getElementById('btn');
+const captionDiv = document.getElementById('caption');
+const rawDiv = document.getElementById('raw');
 
-  <script src="script.js"></script>
+let lastBase64 = null;
+fileInput.addEventListener('change', async (e) => {
+  const file = e.target.files[0];
+  if (!file) return;
+  const reader = new FileReader();
+  reader.onload = () => {
+    preview.src = reader.result;
+    lastBase64 = reader.result;
+  };
+  reader.readAsDataURL(file);
+});
+
+btn.addEventListener('click', async () => {
+  captionDiv.textContent = 'Generating caption…';
+  rawDiv.textContent = '';
+  try {
+    const body = { imageBase64: lastBase64 };
+    const r = await fetch(FUNC_URL, {
+      method: 'POST',
+      headers: {'Content-Type':'application/json'},
+      body: JSON.stringify(body)
+    });
+    const j = await r.json();
+    captionDiv.textContent = j.caption ? `📸 ${j.caption}` : 'No caption found';
+    rawDiv.textContent = JSON.stringify(j.raw || j, null, 2);
+  } catch (err) {
+    captionDiv.textContent = 'Error calling server';
+    rawDiv.textContent = err;
+  }
+});
+</script>
 </body>
 </html>
