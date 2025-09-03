@@ -1,48 +1,86 @@
 name: Azure Static Web Apps CI/CD
 
 on:
+  # Deploy only when code lands on main
   push:
     branches: [ main ]
+  # Run CI on PRs, but DO NOT deploy (secrets don't flow from forks)
   pull_request:
-    branches: [ main ]   # run CI on PRs, but no deploy
+    branches: [ main ]
+
+# Prevent overlapping deploys on the same branch
+concurrency:
+  group: swa-${{ github.ref }}
+  cancel-in-progress: true
 
 jobs:
+  # --- CI job for PRs and pushes (build/test as needed) ---
   build_and_test:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - run: echo "Build steps here (npm ci && npm run build) if you need them"
+        with:
+          submodules: true
+          lfs: false
+
+      # If you have a build, put it here. You're serving static from "/",
+      # and you told SWA to skip app build in deploy, so this is optional.
+      - name: (Optional) App build
+        run: |
+          echo "Add your build steps if needed, e.g.:"
+          echo "npm ci && npm run build"
         shell: bash
 
+  # --- Deploy job: only on push to main (secrets available) ---
   deploy:
-    if: github.event_name == 'push'     # prevent deploy on PRs (forks can't access secrets)
+    if: github.event_name == 'push'
+    needs: [ build_and_test ]
     runs-on: ubuntu-latest
     permissions:
       contents: read
+
     steps:
       - uses: actions/checkout@v4
+        with:
+          submodules: true
+          lfs: false
 
-      - name: Check SWA token presence (safe)
+      # Sanity checks to avoid silent failures
+      - name: Check SWA token presence
         run: |
           if [ -n "${{ secrets.AZURE_STATIC_WEB_APPS_API_TOKEN }}" ]; then
             echo "SWA token: SET"
           else
-            echo "SWA token: MISSING"; exit 1
+            echo "SWA token: MISSING"
+            exit 1
           fi
 
-      # Optional: print token length to catch whitespace issues (doesn't leak the token)
-      - name: Token length
+      - name: Token length (no leak)
         env:
           SWA_TOKEN: ${{ secrets.AZURE_STATIC_WEB_APPS_API_TOKEN }}
-        run: |
-          echo "Token length: ${#SWA_TOKEN}"
+        run: echo "len=${#SWA_TOKEN}"
 
+      # ---- Deploy to Azure Static Web Apps ----
       - name: Deploy to Azure Static Web Apps
         uses: Azure/static-web-apps-deploy@v1
         with:
+          # IMPORTANT: create this repo secret and paste the token from:
+          # az staticwebapp secrets list -n caption-frontend -g <RESOURCE_GROUP> --query "properties.apiKey" -o tsv
           azure_static_web_apps_api_token: ${{ secrets.AZURE_STATIC_WEB_APPS_API_TOKEN }}
           action: upload
+
+          # Your app is served from repo root
           app_location: "/"
-          api_location: "caption-func"   # change/remove if you don't have Functions
+
+          # If you DO have an Azure Functions backend in ./caption-func, keep this.
+          # If you DON'T, either delete this line OR add skip_api_build: true below.
+          # api_location: "caption-func"
+
+          # Skip app build since you’re serving static files already
           skip_app_build: true
-          # skip_api_build: true          # add this if you don't want Functions build
+
+          # If you don't have Functions or don't want it built, uncomment:
+          # skip_api_build: true
+
+          # If you have a built artifact folder (e.g., "build", "dist"), set output_location:
+          # output_location: "build"
