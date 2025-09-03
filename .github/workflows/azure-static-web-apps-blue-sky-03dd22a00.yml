@@ -2,70 +2,47 @@ name: Azure Static Web Apps CI/CD
 
 on:
   push:
-    branches:
-      - main
+    branches: [ main ]
   pull_request:
-    types: [opened, synchronize, reopened, closed]
-    branches:
-      - main
+    branches: [ main ]   # run CI on PRs, but no deploy
 
 jobs:
-  build_and_deploy_job:
-    if: github.event_name == 'push' || (github.event_name == 'pull_request' && github.event.action != 'closed')
+  build_and_test:
     runs-on: ubuntu-latest
-    name: Build and Deploy Job
-    permissions:
-       id-token: write
-       contents: read
     steps:
-      - uses: actions/checkout@v3
-        with:
-          submodules: true
-          lfs: false
-      - name: Install OIDC Client from Core Package
-        run: npm install @actions/core@1.6.0 @actions/http-client
-      - name: Get Id Token
-        uses: actions/github-script@v6
-        id: idtoken
-        with:
-           script: |
-               const coredemo = require('@actions/core')
-               return await coredemo.getIDToken()
-           result-encoding: string
+      - uses: actions/checkout@v4
+      - run: echo "Build steps here (npm ci && npm run build) if you need them"
+        shell: bash
+
+  deploy:
+    if: github.event_name == 'push'     # prevent deploy on PRs (forks can't access secrets)
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+    steps:
+      - uses: actions/checkout@v4
+
       - name: Check SWA token presence (safe)
         run: |
           if [ -n "${{ secrets.AZURE_STATIC_WEB_APPS_API_TOKEN }}" ]; then
             echo "SWA token: SET"
           else
-            echo "SWA token: MISSING"
-            exit 1
+            echo "SWA token: MISSING"; exit 1
           fi
 
-      - name: Build And Deploy
-        id: builddeploy
+      # Optional: print token length to catch whitespace issues (doesn't leak the token)
+      - name: Token length
+        env:
+          SWA_TOKEN: ${{ secrets.AZURE_STATIC_WEB_APPS_API_TOKEN }}
+        run: |
+          echo "Token length: ${#SWA_TOKEN}"
+
+      - name: Deploy to Azure Static Web Apps
         uses: Azure/static-web-apps-deploy@v1
         with:
           azure_static_web_apps_api_token: ${{ secrets.AZURE_STATIC_WEB_APPS_API_TOKEN }}
-          action: "upload"
-          ###### Repository/Build Configurations - These values can be configured to match your app requirements. ######
-          # For more information regarding Static Web App workflow configurations, please visit: https://aka.ms/swaworkflowconfig
-          app_location: "/"           # your HTML is in root
-          api_location: "caption-func"  # optional: folder containing your Azure Function
-          skip_app_build: true        # this tells Azure: don't run Node build
-          ###### End of Repository/Build Configurations ######
-
-  close_pull_request_job:
-    if: github.event_name == 'pull_request' && github.event.action == 'closed'
-    runs-on: ubuntu-latest
-    name: Close Pull Request Job
-    steps:
-      - name: Close Pull Request
-        id: closepullrequest
-        uses: Azure/static-web-apps-deploy@v1
-        with:
-          action: "close"
-
-
-
-
-
+          action: upload
+          app_location: "/"
+          api_location: "caption-func"   # change/remove if you don't have Functions
+          skip_app_build: true
+          # skip_api_build: true          # add this if you don't want Functions build
