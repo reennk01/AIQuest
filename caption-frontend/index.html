@@ -1,0 +1,35 @@
+<!DOCTYPE html>
+<html>
+<head>
+  <title>AI Caption Generator</title>
+  <style>
+    body { font-family: Arial, sans-serif; margin: 30px; }
+    #caption { margin-top: 20px; font-size: 18px; font-weight: bold; }
+  </style>
+</head>
+<body>
+  <h1>🖼 AI Caption Generator</h1>
+
+  <p>Paste an image URL:</p>
+  <input type="text" id="imageUrl" size="60" placeholder="https://example.com/mycat.jpg">
+  <button onclick="getCaption()">Get Caption</button>
+
+  <div id="caption"></div>
+
+  <script>
+    async function getCaption() {
+      const url = document.getElementById("imageUrl").value;
+
+      const response = await fetch("ai-func-quest-fnfkevgqg5cphuhr.southeastasia-01.azurewebsites.net", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ imageUrl: url })
+      });
+
+      const data = await response.json();
+      document.getElementById("caption").innerText =
+        data.caption ? `Caption: ${data.caption}` : "No caption found 😢";
+    }
+  </script>
+</body>
+</html>
